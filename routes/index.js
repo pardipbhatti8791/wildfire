@@ -2,8 +2,10 @@ var twitter = require("../config/twitter_config");
 var express = require("express");
 var router = express.Router();
 
+const Coord = require('../models/tweet');
+
 /* GET home page. */
-router.get("/", function (req, res, next) {
+router.get("/", (req, res, next) => {
   twitter.get('search/tweets', {
     q: '#wildfire'
   }, function (error, tweets, response) {
@@ -52,9 +54,36 @@ router.get("/", function (req, res, next) {
     }
 
     console.log(coordinatesObj);
-    res.render('index', {
-      data: coordinatesObj
+
+    let crd = new Coord({
+      coordinates: [{
+          lat: 30.569094,
+          lng: 76.515454
+        },
+        {
+          lat: 30.569094,
+          lng: 76.860158
+        },
+        {
+          lat: 30.938966,
+          lng: 76.860158
+        },
+        {
+          lat: 30.938966,
+          lng: 76.515454
+        },
+      ]
     });
+
+    try {
+      genre = crd.save();
+      res.render('index', {
+        data: coordinatesObj
+      });
+    } catch (error) {
+      console.log(error.message);
+    }
+
 
   });
 });
