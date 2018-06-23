@@ -5,7 +5,25 @@ var router = express.Router();
 const Coord = require('../models/tweet');
 
 /* GET home page. */
-router.get("/", (req, res, next) => {
+router.get("/", async (req, res) => {
+  res.render('index');
+});
+
+router.post('/getLatLng', async (req, res) => {
+  var gpObjectData = [];
+  const coordData = await Coord.find().select('coordinates -_id');
+  for(key in coordData) {
+    gpObjectData.push({
+      lat: coordData[key].coordinates.lat,
+      lng: coordData[key].coordinates.lng
+    })
+  }
+
+  res.json(gpObjectData);
+})
+
+
+router.get('/tweets', async (req, res) => {
   twitter.get('search/tweets', {
     q: '#wildfire'
   }, function (error, tweets, response) {
@@ -13,77 +31,26 @@ router.get("/", (req, res, next) => {
       return res.send(error);
     }
 
-
-    var coordinatesObj = [];
-
+    res.send(tweets.statuses);
+    var latLongObj = [];
     for (placeKey in tweets.statuses) {
-      if (tweets.statuses[placeKey].place && tweets.statuses[placeKey].place !== undefined) {
-        if (tweets.statuses[placeKey].place != null) {
-          if (tweets.statuses[placeKey].place.bounding_box.coordinates.length > 0) {
-            tweets.statuses[placeKey].place.bounding_box.coordinates.forEach(function (coordinate) {
-              console.log(coordinate);
-              // coordinatesObj.push({
-              //   placeKey: {
-              //     lat: tweets.statuses[placeKey].place.bounding_box.coordinates[i],
-              //     lng: tweets.statuses[placeKey].place.bounding_box.coordinates[i]
-              //   }
-              // });
+
+      if (tweets.statuses[placeKey].geo && tweets.statuses[placeKey].geo !== undefined) {
+        if (tweets.statuses[placeKey].geo != null) {
+          try {
+            let crd = new Coord({
+              coordinates: {
+                'lat': tweets.statuses[placeKey].geo.coordinates[0],
+                'lng': tweets.statuses[placeKey].geo.coordinates[1]
+              }
             });
+            crdResponse = crd.save();
+          } catch (error) {
+            console.log(error.message);
           }
         }
       }
-
-      // if (tweets.statuses[placeKey].quoted_status && tweets.statuses[placeKey].quoted_status !== undefined) {
-      //   if (tweets.statuses[placeKey].quoted_status && tweets.statuses[placeKey].quoted_status !== undefined) {
-      //     if (tweets.statuses[placeKey].quoted_status.place != null) {
-      //       for (var i = 0; i <= tweets.statuses[placeKey].quoted_status.place.bounding_box.coordinates[0].length; i++) {
-
-      //         if (tweets.statuses[placeKey].quoted_status.place.bounding_box.coordinates[0][i] !== undefined) {
-      //           coordinatesObj.push({
-      //             lat: tweets.statuses[placeKey].quoted_status.place.bounding_box.coordinates[0][i][1],
-      //             lng: tweets.statuses[placeKey].quoted_status.place.bounding_box.coordinates[0][i][0]
-      //           })
-      //         }
-
-      //       }
-      //     }
-      //   }
-
-      // }
-
     }
-
-    console.log(coordinatesObj);
-
-    let crd = new Coord({
-      coordinates: [{
-          lat: 30.569094,
-          lng: 76.515454
-        },
-        {
-          lat: 30.569094,
-          lng: 76.860158
-        },
-        {
-          lat: 30.938966,
-          lng: 76.860158
-        },
-        {
-          lat: 30.938966,
-          lng: 76.515454
-        },
-      ]
-    });
-
-    try {
-      genre = crd.save();
-      res.render('index', {
-        data: coordinatesObj
-      });
-    } catch (error) {
-      console.log(error.message);
-    }
-
 
   });
 });

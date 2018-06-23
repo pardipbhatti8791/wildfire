@@ -4,13 +4,13 @@
 <head>
   <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
   <meta charset="utf-8">
-  <title>Polygon Arrays</title>
+  <title>Simple markers</title>
   <style>
     /* Always set the map height explicitly to define the size of the div
        * element that contains the map. */
 
     #map {
-      height: 50%;
+      height: 100%;
     }
 
     /* Optional: Makes the sample page fill the window. */
@@ -26,100 +26,90 @@
 
 <body>
   <div id="map"></div>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
   <script>
-    var map;
-    var infoWindow;
-
+    var myLatLng = [];
+    var map, infoWindow;
     function initMap() {
-      map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 5,
-        center: {
-          lat: 24.886,
-          lng: -70.268
-        },
-        mapTypeId: 'terrain'
-      });
 
-      // Define the LatLng coordinates for the polygon.
-      var triangleCoords = [{
-          lat: 30.569094,
-          lng: 76.515454
-        },
-        {
-          lat: 30.569094,
-          lng: 76.860158
-        },
-        {
-          lat: 30.938966,
-          lng: 76.860158
-        },
-        {
-          lat: 30.938966,
-          lng: 76.515454
-        },
-      ];
+      $.ajax({
+        type: 'POST',
+        url: '/getLatLng',
+        dataType: 'json',
+        beforeSend: function () {
 
-      var path2 = [{
-          lat: 30.70314577305184,
-          lng: 76.70535130773267
         },
-        {
-          lat: 30.70314577305184,
-          lng: 76.70535130773267
-        },
-        {
-          lat: 30.70314577305184,
-          lng: 76.70535130773267
-        },
-        {
-          lat: 30.70314577305184,
-          lng: 76.70535130773267
+        success: function (response) {
+          if (window.location.href.split('?')[1] != 'json') {
+            for (key in response) {
+              myLatLng.push({
+                lat: response[key].lat, lng: response[key].lng
+              });
+            }
+          } else {
+            myLatLng = [
+              { lat: -33.890542, lng: 151.274856 },
+              { lat: -33.923036, lng: 151.259052 },
+              { lat: -34.028249, lng: 151.157507 },
+              { lat: -33.80010128657071, lng: 151.28747820854187 },
+              { lat: -33.950198, lng: 151.259302 }
+            ]
+          }
+
+          map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 4,
+            center: (window.location.href.split('?')[1] != 'json') ? { lat: -33.90, lng: 151.16 } : { lat: -25.363, lng: 131.044 }
+          });
+
+          infoWindow = new google.maps.InfoWindow;
+
+          // Try HTML5 geolocation.
+          if (window.location.href.split('?')[1] != 'json') {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(function (position) {
+                var pos = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude
+                };
+
+                infoWindow.setPosition(pos);
+                map.setCenter(pos);
+              }, function () {
+                handleLocationError(true, infoWindow, map.getCenter());
+              });
+            } else {
+              // Browser doesn't support Geolocation
+              handleLocationError(false, infoWindow, map.getCenter());
+            }
+          }
+
+          /**
+           * @ { Adding multiple markers } 
+           **/
+          for (var i = 0; i <= myLatLng.length; i++) {
+            console.log(myLatLng)
+            var marker = new google.maps.Marker({
+              position: new google.maps.LatLng(myLatLng[i].lat, myLatLng[i].lng),
+              map: map
+            });
+          }
         }
-      ]
-
-      // Construct the polygon.
-      var bermudaTriangle = new google.maps.Polygon({
-        paths: triangleCoords,
-        strokeColor: '#FF0000',
-        strokeOpacity: 0.8,
-        strokeWeight: 3,
-        fillColor: '#FF0000',
-        fillOpacity: 0.35,
-      });
-      bermudaTriangle.setMap(map);
-
-      // Add a listener for the click event.
-      bermudaTriangle.addListener('click', showArrays);
-
-      infoWindow = new google.maps.InfoWindow;
+      })
     }
 
-    /** @this {google.maps.Polygon} */
-    function showArrays(event) {
-      // Since this polygon has only one path, we can call getPath() to return the
-      // MVCArray of LatLngs.
-      var vertices = this.getPath();
-
-      var contentString = '<b>Bermuda Triangle polygon</b><br>' +
-        'Clicked location: <br>' + event.latLng.lat() + ',' + event.latLng.lng() +
-        '<br>';
-
-      // Iterate over the vertices.
-      for (var i = 0; i < vertices.getLength(); i++) {
-        var xy = vertices.getAt(i);
-        contentString += '<br>' + 'Coordinate ' + i + ':<br>' + xy.lat() + ',' +
-          xy.lng();
-      }
-
-      // Replace the info window's content and position.
-      infoWindow.setContent(contentString);
-      infoWindow.setPosition(event.latLng);
-
+    function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+      infoWindow.setPosition(pos);
+      infoWindow.setContent(browserHasGeolocation ?
+        'Error: The Geolocation service failed.' :
+        'Error: Your browser doesn\'t support geolocation.');
       infoWindow.open(map);
     }
+
   </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAGcCHbkj7SRSwFrWjdxjH0-WWnJ3mqXt8&callback=initMap">
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALmsUxId0yNREGYP43tz7minmhsE1Xbmk&callback=initMap">
   </script>
+
 </body>
 
 </html>
